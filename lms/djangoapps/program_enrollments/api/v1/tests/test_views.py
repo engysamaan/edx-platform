@@ -863,3 +863,13 @@ class ProgramEnrollmentViewPostTests(APITestCase):
             '001': 'invalid-status',
             '003': 'pending',
         })
+
+
+class ProgramEnrollmentViewPatchTests(APITestCase):
+    """
+    Tests for the ProgramEnrollment view PATCH method.
+    """
+    def setUp(self):
+        super(ProgramEnrollmentViewPatchTests, self).setUp()
+        # global_staff = GlobalStaffFactory.create(username='global-staff', password='password')
+        # self.client.login(username=global_staff.username, password='password')
