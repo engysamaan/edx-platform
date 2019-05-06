@@ -871,5 +871,52 @@ class ProgramEnrollmentViewPatchTests(APITestCase):
     """
     def setUp(self):
         super(ProgramEnrollmentViewPatchTests, self).setUp()
-        # global_staff = GlobalStaffFactory.create(username='global-staff', password='password')
-        # self.client.login(username=global_staff.username, password='password')
+
+        program_uuid = '00000000-1111-2222-3333-444444444444'
+        self.curriculum_uuid = 'aaaaaaaa-1111-2222-3333-444444444444'
+        self.other_curriculum_uuid = 'bbbbbbbb-1111-2222-3333-444444444444'
+
+        self.course_id = CourseKey.from_string('course-v1:edX+ToyX+Toy_Course')
+        _ = CourseOverviewFactory.create(id=self.course_id)
+
+        self.password = 'password'
+        self.student = UserFactory.create(username='student', password=self.password)
+        self.global_staff = GlobalStaffFactory.create(username='global-staff', password=self.password)
+        
+        self.client.login(username=global_staff.username, password=self.password)
+    
+    def student_enrollment(self, enrollment_status, external_user_key=None):
+        return {
+            'status': enrollment_status,
+            'external_user_key': external_user_key or str(uuid4().hex[0:10]),
+        }
+    
+    def test_successfully_patched_program_enrollment(self):
+        for i in xrange(2):
+            user_key = 'user-{}'.format(i)
+            ProgramEnrollment.objects.create(
+                program_uuid=self.program_uuid,
+                curriculum_uuid=self.curriculum_uuid,
+                user=None,
+                status='pending',
+                external_user_key=user_key,
+            )
+
+        for i in xrange(2, 4):
+            user_key = 'user-{}'.format(i)
+            ProgramEnrollment.objects.create(
+                program_uuid=self.program_uuid, curriculum_uuid=self.curriculum_uuid, external_user_key=user_key,
+            )
+        
+        post_data = [{
+            "student_key": "user-1",
+            "status": "withdrawn" 
+        }]
+        user_1 = ProgramEnrollment.objects.filter(external_user_key='user-1')[0]
+
+        self.assertEqual(user_1['status'], 'pending')
+
+        url = reverse('programs_api:v1:program_enrollments', args=[self.program_uuid])
+        response = self.client.patch(url, json.dumps(post_data), content_type='application/json')
+
+        self.assertEqual(user_1['status'], 'withdrawn')
