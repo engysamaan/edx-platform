@@ -258,7 +258,10 @@ class ProgramEnrollmentsView(DeveloperErrorViewMixin, PaginatedAPIView):
             serializer = ProgramEnrollmentSerializer(data=data)
             if serializer.is_valid():
                 enrollments_to_create[(student_key, curriculum_uuid)] = serializer
-                response_data[student_key] = data.get('status')
+                if not existing_user:
+                    response_data[student_key] = data.get('status') + '-waiting'
+                else: 
+                    response_data[student_key] = data.get('status')
             else:
                 if 'status' in serializer.errors and serializer.errors['status'][0].code == 'invalid_choice':
                     response_data[student_key] = CourseEnrollmentResponseStatuses.INVALID_STATUS
@@ -292,6 +295,35 @@ class ProgramEnrollmentsView(DeveloperErrorViewMixin, PaginatedAPIView):
             data=response_data,
             content_type='application/json',
         )
+
+    def patch(self, request, *args, **kwargs):
+        if len(request.data) > 25:
+            return Response(
+                status=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                content_type='application/json',
+            )
+
+        program_uuid = kwargs['program_uuid']
+        enrollment = ProgramEnrollment.objects.get(external_user_key=request.data['student_key'], program_uuid=program_uuid)
+
+        data = {
+            'status': request.data['status'],
+        }
+        
+        enrollment_serializer = ProgramEnrollmentSerializer(enrollment, data=data, partial=True)
+        if enrollment_serializer.is_valid():
+            enrollment_serializer.save()
+            return Response(
+                status=status.HTTP_200_OK,
+                data='ok',
+                content_type='application/json',
+            )
+        else:
+            return Response(
+                status=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                data='bad',
+                content_type='application/json',
+            )
 
 
 class ProgramSpecificViewMixin(object):

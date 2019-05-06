@@ -704,7 +704,7 @@ class ProgramEnrollmentViewPostTests(APITestCase):
         self.assertEqual(response.status_code, 201)
 
         for i in range(3):
-            enrollment = ProgramEnrollment.objects.filter(external_user_key=external_user_keys[i])[0]
+            enrollment = ProgramEnrollment.objects.get(external_user_key=external_user_keys[i])
 
             self.assertEqual(enrollment.external_user_key, external_user_keys[i])
             self.assertEqual(enrollment.program_uuid, program_key)
@@ -892,7 +892,7 @@ class ProgramEnrollmentViewPatchTests(APITestCase):
         }
     
     def test_successfully_patched_program_enrollment(self):
-        for i in xrange(2):
+        for i in xrange(4):
             user_key = 'user-{}'.format(i)
             ProgramEnrollment.objects.create(
                 program_uuid=self.program_uuid,
@@ -901,23 +901,33 @@ class ProgramEnrollmentViewPatchTests(APITestCase):
                 status='pending',
                 external_user_key=user_key,
             )
-
-        for i in xrange(2, 4):
-            user_key = 'user-{}'.format(i)
-            ProgramEnrollment.objects.create(
-                program_uuid=self.program_uuid, curriculum_uuid=self.curriculum_uuid, external_user_key=user_key,
-            )
         
         post_data = [{
             "student_key": "user-1",
             "status": "withdrawn" 
+        },{
+            "student_key": "user-2",
+            "status": "suspended" 
+        },{
+            "student_key": "user-3",
+            "status": "enrolled" 
         }]
-        user_1 = ProgramEnrollment.objects.filter(external_user_key='user-1')[0]
+        user_1 = ProgramEnrollment.objects.get(external_user_key='user-1')
+        user_2 = ProgramEnrollment.objects.get(external_user_key='user-2')
+        user_3 = ProgramEnrollment.objects.get(external_user_key='user-3')
 
         self.assertEqual(user_1.status, 'pending')
+        self.assertEqual(user_2.status, 'pending')
+        self.assertEqual(user_3.status, 'pending')
 
         url = reverse('programs_api:v1:program_enrollments', args=[self.program_uuid])
         response = self.client.patch(url, json.dumps(post_data), content_type='application/json')
 
+        user_1.refresh_from_db()
+        user_2.refresh_from_db()
+        user_3.refresh_from_db()
+
         self.assertEqual(response.status_code, 200)
         self.assertEqual(user_1.status, 'withdrawn')
+        self.assertEqual(user_2.status, 'suspended')
+        self.assertEqual(user_3.status, 'enrolled')
