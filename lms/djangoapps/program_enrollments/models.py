@@ -143,27 +143,19 @@ class ProgramCourseEnrollment(TimeStampedModel):  # pylint: disable=model-missin
         return '[ProgramCourseEnrollment id={}]'.format(self.id)
 
     @classmethod
-    def enroll(cls, program_enrollment, course_key, status):
+    def create_program_course_enrollment(cls, program_enrollment, course_key, status):
         """
         Create ProgramCourseEnrollment for the given course and program enrollment
         """
-        course_enrollment = None
-        if program_enrollment.user:
-            course_enrollment = StudentCourseEnrollment.enroll(
-                program_enrollment.user,
-                course_key,
-                mode=CourseMode.MASTERS,
-                check_access=True,
-            )
-            if status == CourseEnrollmentResponseStatuses.INACTIVE:
-                course_enrollment.deactivate()
-
         program_course_enrollment = ProgramCourseEnrollment.objects.create(
             program_enrollment=program_enrollment,
-            course_enrollment=course_enrollment,
             course_key=course_key,
             status=status,
         )
+
+        if program_enrollment.user:
+            program_course_enrollment.enroll(program_enrollment.user)
+
         return program_course_enrollment.status
 
     def change_status(self, status):
@@ -196,3 +188,17 @@ class ProgramCourseEnrollment(TimeStampedModel):  # pylint: disable=model-missin
             ))
         self.save()
         return self.status
+
+    def enroll(self, user):
+        """
+        Create a StudentCourseEnrollment to enroll user in course
+        """
+        self.course_enrollment = StudentCourseEnrollment.enroll(
+            user,
+            self.course_key,
+            mode=CourseMode.MASTERS,
+            check_access=True,
+        )
+        if self.status == CourseEnrollmentResponseStatuses.INACTIVE:
+            self.course_enrollment.deactivate()
+        self.save()

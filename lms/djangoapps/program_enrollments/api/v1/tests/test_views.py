@@ -18,8 +18,8 @@ from six import text_type
 
 from lms.djangoapps.courseware.tests.factories import GlobalStaffFactory
 from lms.djangoapps.program_enrollments.api.v1.constants import CourseEnrollmentResponseStatuses as CourseStatuses
-from lms.djangoapps.program_enrollments.models import ProgramEnrollment, ProgramCourseEnrollment
-from student.tests.factories import UserFactory, CourseEnrollmentFactory
+from lms.djangoapps.program_enrollments.models import ProgramCourseEnrollment, ProgramEnrollment
+from lms.djangoapps.program_enrollments.tests.factories import ProgramCourseEnrollmentFactory, ProgramEnrollmentFactory
 from openedx.core.djangoapps.catalog.cache import PROGRAM_CACHE_KEY_TPL
 from openedx.core.djangoapps.catalog.tests.factories import (
     CourseFactory,
@@ -28,7 +28,7 @@ from openedx.core.djangoapps.catalog.tests.factories import (
 )
 from openedx.core.djangoapps.content.course_overviews.tests.factories import CourseOverviewFactory
 from openedx.core.djangolib.testing.utils import CacheIsolationMixin
-from .factories import ProgramCourseEnrollmentFactory, ProgramEnrollmentFactory
+from student.tests.factories import UserFactory, CourseEnrollmentFactory
 
 
 class ListViewTestMixin(object):
