@@ -26,4 +26,5 @@ class WaffleFlagCourseOverrideAdmin(KeyedConfigurationModelAdmin):
         }),
     )
 
+
 admin.site.register(WaffleFlagCourseOverrideModel, WaffleFlagCourseOverrideAdmin)
