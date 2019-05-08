@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 @receiver(post_save, sender=UserSocialAuth)
-def populate_waiting_enrollments(sender, instance, **kwargs):  # pylint: disable=unused-argument
+def martriculate_learner(sender, instance, **kwargs):  # pylint: disable=unused-argument
     """
     Post-save signal to update any waiting program enrollments with a user,
     and enroll the user in any waiting course enrollments.
@@ -22,13 +22,12 @@ def populate_waiting_enrollments(sender, instance, **kwargs):  # pylint: disable
     In most cases this will just short-circuit. Enrollments will only be updated
     for a SAML provider with a linked organization.
     """
-    user = instance.user
-
     try:
+        user = instance.user
         provider_slug, external_user_key = instance.uid.split(':')
         if not SAMLProviderConfig.objects.get(slug=provider_slug).organization:
             return
-    except (SAMLProviderConfig.DoesNotExist, ValueError):
+    except (AttributeError, ValueError, SAMLProviderConfig.DoesNotExist):
         return
 
     incomplete_enrollments = ProgramEnrollment.objects.filter(
@@ -42,6 +41,11 @@ def populate_waiting_enrollments(sender, instance, **kwargs):  # pylint: disable
             try:
                 program_course_enrollment.enroll(user)
             except CourseEnrollmentException as e:
-                logger.critical(
-                    u'Failed to enroll waiting program_course_enrollment={}: {}'.format(program_course_enrollment.id, e)
+                message = u'Failed to enroll user={user} with waiting program_course_enrollment={enrollment}: {error}'
+                logger.warning(
+                    message.format(
+                        user=user.id,
+                        enrollment=program_course_enrollment.id,
+                        error=e)
                 )
+                raise e

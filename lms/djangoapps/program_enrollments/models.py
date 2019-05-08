@@ -14,7 +14,7 @@ from lms.djangoapps.program_enrollments.api.v1.constants import CourseEnrollment
 from model_utils.models import TimeStampedModel
 from opaque_keys.edx.django.models import CourseKeyField
 from simple_history.models import HistoricalRecords
-from student.models import CourseEnrollment as StudentCourseEnrollment
+from student.models import AlreadyEnrolledError, CourseEnrollment as StudentCourseEnrollment
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
@@ -193,12 +193,21 @@ class ProgramCourseEnrollment(TimeStampedModel):  # pylint: disable=model-missin
         """
         Create a StudentCourseEnrollment to enroll user in course
         """
-        self.course_enrollment = StudentCourseEnrollment.enroll(
-            user,
-            self.course_key,
-            mode=CourseMode.MASTERS,
-            check_access=True,
-        )
+        try:
+            self.course_enrollment = StudentCourseEnrollment.enroll(
+                user,
+                self.course_key,
+                mode=CourseMode.MASTERS,
+                check_access=True,
+            )
+        except AlreadyEnrolledError:
+            message = ("Attempted to create course enrollment for user={user} and course={course}"
+                       " but an enrollment already exists. Existing enrollment will be used instead")
+            logger.info(message.format(user=user.id, course=self.course_key))
+            self.course_enrollment = StudentCourseEnrollment.objects.get(
+                user=user,
+                course_id=self.course_key,
+            )
         if self.status == CourseEnrollmentResponseStatuses.INACTIVE:
             self.course_enrollment.deactivate()
         self.save()
