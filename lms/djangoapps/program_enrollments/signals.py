@@ -42,7 +42,6 @@ def populate_waiting_enrollments(sender, instance, **kwargs):  # pylint: disable
             try:
                 program_course_enrollment.enroll(user)
             except CourseEnrollmentException as e:
-                # TODO: eat exception w/ crit error vs. potentially block social_auth creation?
                 logger.critical(
                     u'Failed to enroll waiting program_course_enrollment={}: {}'.format(program_course_enrollment.id, e)
                 )
