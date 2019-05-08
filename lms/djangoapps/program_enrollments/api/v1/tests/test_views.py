@@ -918,8 +918,8 @@ class ProgramEnrollmentViewPatchTests(APITestCase):
         ]
 
         url = reverse('programs_api:v1:program_enrollments', args=[self.program_uuid])
-
-        response = self.client.patch(url, json.dumps(post_data), content_type='application/json')
+        with mock.patch('lms.djangoapps.program_enrollments.api.v1.views.get_programs', autospec=True):
+            response = self.client.patch(url, json.dumps(post_data), content_type='application/json')
 
         for enrollment in enrollments.values():
             enrollment.refresh_from_db()
@@ -941,17 +941,74 @@ class ProgramEnrollmentViewPatchTests(APITestCase):
         assert status.HTTP_200_OK  == response.status_code
         assert expected_response == response.data
 
-        def test_enrollment_payload_limit(self):
-            patch_data = []
-            for _ in range(26):
-                patch_data += self.student_enrollment('enrolled')
+    def test_enrollment_payload_limit(self):
+        patch_data = []
+        for _ in range(26):
+            patch_data += self.student_enrollment('enrolled')
 
-            url = reverse('programs_api:v1:program_enrollments', args=[uuid4()])
-            # with mock.patch('lms.djangoapps.program_enrollments.api.v1.views.get_programs', autospec=True):
-            #     with mock.patch(
-            #         'lms.djangoapps.program_enrollments.api.v1.views.get_user_by_program_id',
-            #         autospec=True,
-            #         return_value=None
-            #     ):
+        url = reverse('programs_api:v1:program_enrollments', args=[uuid4()])
+        with mock.patch('lms.djangoapps.program_enrollments.api.v1.views.get_programs', autospec=True):
             response = self.client.patch(url, json.dumps(patch_data), content_type='application/json')
-            self.assertEqual(response.status_code, 4130)
+        #     with mock.patch(
+        #         'lms.djangoapps.program_enrollments.api.v1.views.get_user_by_program_id',
+        #         autospec=True,
+        #         return_value=None
+        #     ):
+        self.assertEqual(response.status_code, 413)
+
+    def test_unauthenticated(self):
+        self.client.logout()
+        patch_data = [
+            self.student_enrollment('enrolled')
+        ]
+        url = reverse('programs_api:v1:program_enrollments', args=[uuid4()])
+        response = self.client.patch(
+            url,
+            json.dumps(patch_data),
+            content_type='application/json'
+        )
+
+        self.assertEqual(response.status_code, 401)
+
+    def test_program_unauthorized(self):
+        self.client.login(username=self.student.username, password=self.password)
+
+        patch_data = [
+            self.student_enrollment('enrolled')
+        ]
+        url = reverse('programs_api:v1:program_enrollments', args=[uuid4()])
+        response = self.client.patch(
+            url,
+            json.dumps(patch_data),
+            content_type='application/json'
+        )
+        self.assertEqual(response.status_code, 403)
+
+    def test_program_not_found(self):
+        patch_data = [
+            self.student_enrollment('enrolled')
+        ]
+        url = reverse('programs_api:v1:program_enrollments', args=[uuid4()])
+        response = self.client.patch(
+            url,
+            json.dumps(patch_data),
+            content_type='application/json'
+        )
+        self.assertEqual(response.status_code, 404)
+
+    def test_unprocessable_enrollment(self):
+        url = reverse('programs_api:v1:program_enrollments', args=[uuid4()])
+
+        with mock.patch('lms.djangoapps.program_enrollments.api.v1.views.get_programs', autospec=True):
+            response = self.client.patch(
+                url,
+                json.dumps([{'status': 'enrolled'}]),
+                content_type='application/json'
+            )
+            # with mock.patch(
+            #     'lms.djangoapps.program_enrollments.api.v1.views.get_user_by_program_id',
+            #     autospec=True,
+            #     return_value=None
+            # ):
+
+        self.assertEqual(response.status_code, 422)

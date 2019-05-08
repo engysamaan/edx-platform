@@ -260,6 +260,7 @@ class ProgramEnrollmentsView(DeveloperErrorViewMixin, PaginatedAPIView):
 
         return self._get_created_or_updated_response(request, enrollments_to_create, response_data)
 
+    @verify_program_exists
     def patch(self, request, *args, **kwargs):
         if len(request.data) > 25:
             return Response(
