@@ -85,7 +85,7 @@ from student.models import (
 from student.signals import REFUND_ORDER
 from student.tasks import send_activation_email
 from student.text_me_the_app import TextMeTheAppFragmentView
-from util.bad_request_rate_limiter import BadRequestRateLimiter
+from util.request_rate_limiter import BadRequestRateLimiter, PasswordResetEmailRateLimiter
 from util.db import outer_atomic
 from util.json_request import JsonResponse
 from util.password_policy_validators import normalize_password, validate_password
@@ -664,10 +664,19 @@ def password_change_request_handler(request):
 
     """
 
-    limiter = BadRequestRateLimiter()
-    if limiter.is_rate_limit_exceeded(request):
-        AUDIT_LOG.warning("Password reset rate limit exceeded")
+    bad_request_limiter = BadRequestRateLimiter()
+    password_reset_email_limiter = PasswordResetEmailRateLimiter()
+
+    if bad_request_limiter.is_rate_limit_exceeded(request):
+        AUDIT_LOG.warning("Password reset bad request rate limit exceeded")
         return HttpResponseForbidden()
+    
+    if password_reset_email_limiter.is_rate_limit_exceeded(request):
+        AUDIT_LOG.warning("Password reset rate limit exceeded")
+        return HttpResponse(
+            _("You previous request is in progress, please try again in a few moments."), 
+            status=500
+        )
 
     user = request.user
     # Prefer logged-in user's email
@@ -679,10 +688,11 @@ def password_change_request_handler(request):
             request_password_change(email, request.is_secure())
             user = user if user.is_authenticated else get_user_from_email(email=email)
             destroy_oauth_tokens(user)
+            password_reset_email_limiter.tick_request_counter(request)
         except UserNotFound:
             AUDIT_LOG.info("Invalid password reset attempt")
             # Increment the rate limit counter
-            limiter.tick_bad_request_counter(request)
+            bad_request_limiter.tick_request_counter(request)
 
             # If enabled, send an email saying that a password reset was attempted, but that there is
             # no user associated with the email
@@ -709,7 +719,7 @@ def password_change_request_handler(request):
             log.exception('Error occured during password change for user {email}: {error}'
                           .format(email=email, error=err))
             return HttpResponse(_("Some error occured during password change. Please try again"), status=500)
-
+        
         return HttpResponse(status=200)
     else:
         return HttpResponseBadRequest(_("No email address provided."))
@@ -770,7 +780,7 @@ def password_reset(request):
     else:
         # bad user? tick the rate limiter counter
         AUDIT_LOG.info("Bad password_reset user passed in.")
-        limiter.tick_bad_request_counter(request)
+        limiter.tick_request_counter(request)
 
     return JsonResponse({
         'success': True,
