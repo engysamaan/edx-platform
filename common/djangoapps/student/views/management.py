@@ -664,17 +664,12 @@ def password_change_request_handler(request):
 
     """
 
-    bad_request_limiter = BadRequestRateLimiter()
     password_reset_email_limiter = PasswordResetEmailRateLimiter()
 
-    if bad_request_limiter.is_rate_limit_exceeded(request):
-        AUDIT_LOG.warning("Password reset bad request rate limit exceeded")
-        return HttpResponseForbidden()
-    
     if password_reset_email_limiter.is_rate_limit_exceeded(request):
         AUDIT_LOG.warning("Password reset rate limit exceeded")
         return HttpResponse(
-            _("You previous request is in progress, please try again in a few moments."), 
+            _("You previous request is in progress, please try again in a few moments."),
             status=500
         )
 
@@ -688,12 +683,8 @@ def password_change_request_handler(request):
             request_password_change(email, request.is_secure())
             user = user if user.is_authenticated else get_user_from_email(email=email)
             destroy_oauth_tokens(user)
-            password_reset_email_limiter.tick_request_counter(request)
         except UserNotFound:
             AUDIT_LOG.info("Invalid password reset attempt")
-            # Increment the rate limit counter
-            bad_request_limiter.tick_request_counter(request)
-
             # If enabled, send an email saying that a password reset was attempted, but that there is
             # no user associated with the email
             if configuration_helpers.get_value('ENABLE_PASSWORD_RESET_FAILURE_EMAIL',
@@ -713,13 +704,13 @@ def password_change_request_handler(request):
                     language=settings.LANGUAGE_CODE,
                     user_context=message_context,
                 )
-
                 ace.send(msg)
         except UserAPIInternalError as err:
             log.exception('Error occured during password change for user {email}: {error}'
                           .format(email=email, error=err))
             return HttpResponse(_("Some error occured during password change. Please try again"), status=500)
-        
+
+        password_reset_email_limiter.tick_request_counter(request)
         return HttpResponse(status=200)
     else:
         return HttpResponseBadRequest(_("No email address provided."))

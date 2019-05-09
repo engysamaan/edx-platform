@@ -5,8 +5,7 @@ which can be used for rate limiting
 from __future__ import absolute_import
 
 from ratelimitbackend.backends import RateLimitMixin
-import logging
-log = logging.getLogger(__name__)
+
 
 class RequestRateLimiter(RateLimitMixin):
     """
@@ -16,9 +15,7 @@ class RequestRateLimiter(RateLimitMixin):
         """
         Returns if the client has been rated limited
         """
-        
         counts = self.get_counters(request)
-        log.info(counts)
         return sum(counts.values()) >= self.requests
 
     def tick_request_counter(self, request):
@@ -30,7 +27,7 @@ class RequestRateLimiter(RateLimitMixin):
 
 class BadRequestRateLimiter(RequestRateLimiter):
     """
-    Default rate limit is 30 requests for every 5 minutes. 
+    Default rate limit is 30 requests for every 5 minutes.
     """
     pass
 
@@ -58,10 +55,3 @@ class PasswordResetEmailRateLimiter(RequestRateLimiter):
         Returns timeout for cache keys
         """
         return self.cache_timeout_seconds
-    
-
-
-
-
-
-
