@@ -670,7 +670,7 @@ def password_change_request_handler(request):
         AUDIT_LOG.warning("Password reset rate limit exceeded")
         return HttpResponse(
             _("You previous request is in progress, please try again in a few moments."),
-            status=500
+            status=403
         )
 
     user = request.user
