@@ -19,6 +19,7 @@ from django.utils.decorators import method_decorator
 
 from .applicability import can_recieve_discount, discount_percentage
 
+
 class CourseUserDiscount(DeveloperErrorViewMixin, APIView):
     """
     **Use Cases**

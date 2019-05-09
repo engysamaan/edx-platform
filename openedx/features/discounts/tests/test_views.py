@@ -30,7 +30,7 @@ class TestCourseUserDiscount(ModuleStoreTestCase):
         Test that the url hasn't changed
         """
 
-        url = reverse('api_discounts:course_user_discount', kwargs={'course_key_string':unicode(self.course.id)})
+        url = reverse('api_discounts:course_user_discount', kwargs={'course_key_string': unicode(self.course.id)})
         assert url == ('/api/discounts/course/' + unicode(self.course.id))
 
     def test_course_user_discount(self):
@@ -38,12 +38,12 @@ class TestCourseUserDiscount(ModuleStoreTestCase):
         Test that the api returns a jwt with the discount information
         """
         self.client.login(username=self.user.username, password=TEST_PASSWORD)
-        url = reverse('api_discounts:course_user_discount', kwargs={'course_key_string':unicode(self.course.id)})
+        url = reverse('api_discounts:course_user_discount', kwargs={'course_key_string': unicode(self.course.id)})
 
         # the endpoint should return a 200 if all goes well
-        response = self.client.get(
-            reverse('api_discounts:course_user_discount', 
-            kwargs={'course_key_string':unicode(self.course.id)}))
+        response = self.client.get(reverse(
+            'api_discounts:course_user_discount',
+            kwargs={'course_key_string': unicode(self.course.id)}))
         assert response.status_code == 200
 
         # for now, it should always return false
@@ -58,10 +58,10 @@ class TestCourseUserDiscount(ModuleStoreTestCase):
         """
         Test that the endpoint returns a 401 if there is no user signed in
         """
-        url = reverse('api_discounts:course_user_discount', kwargs={'course_key_string':unicode(self.course.id)})
+        url = reverse('api_discounts:course_user_discount', kwargs={'course_key_string': unicode(self.course.id)})
 
         # the endpoint should return a 401 because the user is not logged in
-        response = self.client.get(
-            reverse('api_discounts:course_user_discount', 
-            kwargs={'course_key_string':unicode(self.course.id)}))        
+        response = self.client.get(reverse(
+            'api_discounts:course_user_discount',
+            kwargs={'course_key_string': unicode(self.course.id)}))
         assert response.status_code == 401
