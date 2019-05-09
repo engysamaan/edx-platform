@@ -8,9 +8,6 @@ from django.urls import reverse
 from xmodule.modulestore.tests.factories import CourseFactory
 from xmodule.modulestore.tests.django_utils import ModuleStoreTestCase
 from student.tests.factories import UserFactory, TEST_PASSWORD
-from rest_framework.test import APIRequestFactory
-
-from openedx.features.discounts.views import CourseUserDiscount
 
 
 class TestCourseUserDiscount(ModuleStoreTestCase):
@@ -41,9 +38,7 @@ class TestCourseUserDiscount(ModuleStoreTestCase):
         url = reverse('api_discounts:course_user_discount', kwargs={'course_key_string': unicode(self.course.id)})
 
         # the endpoint should return a 200 if all goes well
-        response = self.client.get(reverse(
-            'api_discounts:course_user_discount',
-            kwargs={'course_key_string': unicode(self.course.id)}))
+        response = self.client.get(url)
         assert response.status_code == 200
 
         # for now, it should always return false
@@ -61,7 +56,5 @@ class TestCourseUserDiscount(ModuleStoreTestCase):
         url = reverse('api_discounts:course_user_discount', kwargs={'course_key_string': unicode(self.course.id)})
 
         # the endpoint should return a 401 because the user is not logged in
-        response = self.client.get(reverse(
-            'api_discounts:course_user_discount',
-            kwargs={'course_key_string': unicode(self.course.id)}))
+        response = self.client.get(url)
         assert response.status_code == 401
