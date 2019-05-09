@@ -65,7 +65,7 @@ class UserAccountUpdateTest(CacheIsolationTestCase, UrlResetMixin):
     OLD_EMAIL = u"walter@graymattertech.com"
     NEW_EMAIL = u"walt@savewalterwhite.com"
 
-    INVALID_ATTEMPTS = 100
+    INVALID_ATTEMPTS = 2
     INVALID_KEY = u"123abc"
 
     URLCONF_MODULES = ['student_accounts.urls']
@@ -239,13 +239,10 @@ class UserAccountUpdateTest(CacheIsolationTestCase, UrlResetMixin):
         # selecting the logged-in user's email address over the email provided
         # in the POST data
         self.client.logout()
-
-        # Make many consecutive bad requests in an attempt to trigger the rate limiter
-        for __ in xrange(self.INVALID_ATTEMPTS):
-            self._change_password(email=self.NEW_EMAIL)
-
-        response = self._change_password(email=self.NEW_EMAIL)
-        self.assertEqual(response.status_code, 403)
+        
+        for status in [200, 403]:
+            response = self._change_password(email=self.NEW_EMAIL)
+            self.assertEqual(response.status_code, status)
 
     @ddt.data(
         ('post', 'password_change_request', []),

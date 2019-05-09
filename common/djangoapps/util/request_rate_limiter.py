@@ -44,7 +44,7 @@ class PasswordResetEmailRateLimiter(RequestRateLimiter):
 
     def key(self, request, dt):
         """
-        Returns cache key. 
+        Returns cache key.
         """
         return '%s-%s-%s' % (
             self.reset_email_cache_prefix,
